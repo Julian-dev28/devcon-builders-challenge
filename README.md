@@ -56,3 +56,29 @@ A two-week virtual challenge for developers to build with OKX tools including DE
 
 
 ## Making A Submission
+
+### 1. Find Your Bounty
+- All bounties are listed as GitHub issues labeled "builders-challenge"
+- Comment on the issue you want to work on to express interest
+- Each bounty will link to its specific branch and requirements
+
+### 2. Setup Your Environment
+- Fork the relevant repository:
+ - [DEX Widget Demo](https://github.com/Julian-dev28/dex-widget-demo)
+ - [EVM Swap App](https://github.com/Julian-dev28/okx-os-evm-swap-app) 
+ - [Trading Bot](https://github.com/Julian-dev28/OKX-OS-Trading-Bot)
+- Make sure to check out the correct branch specific to your bounty
+
+### 3. Development
+- Build your solution
+- Test thoroughly
+- Document your changes
+- Follow the requirements specified in the issue
+
+### 4. Submit Your Work
+- Create a Pull Request (PR) to the specific branch for your bounty
+- Reference the issue number in your PR
+- Include a clear description of your implementation
+- Add any relevant documentation or setup instructions
+
+Note: Make sure to work on the correct branch and target it in your PR. Each bounty has its own dedicated branch to keep submissions organized.
