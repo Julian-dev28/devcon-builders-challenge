@@ -1,0 +1,4 @@
+run = ["echo", "View the Markdown preview tab on the right"]
+
+[nix]
+channel = "stable-22_11"
