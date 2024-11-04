@@ -4,16 +4,6 @@
 
 We're excited to kick off this three-week building adventure where developers can showcase their skills and creativity using OKX's powerful tools. Whether you're interested in DEX integration, widget development, or building trading bots, there's a challenge here for you.
 
-## Quick Start
-1. Browse our bounties:
-   - [DEX Widget Challenges](https://github.com/Julian-dev28/dex-widget-demo/issues)
-   - [EVM Swap App Challenges](https://github.com/Julian-dev28/okx-os-evm-swap-app/issues)
-   - [Trading Bot Challenges](https://github.com/Julian-dev28/OKX-OS-Trading-Bot/issues)
-2. Pick a challenge that excites you
-3. Fork the relevant template
-4. Start building!
-
-
 ## Base Templates
 | Name | Description | Repl | GitHub |
 |------|-------------|------|--------|
