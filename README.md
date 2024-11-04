@@ -6,7 +6,7 @@ We're excited to kick off this two-week building adventure where developers can 
 
 A two-week virtual challenge for developers to build with OKX tools including DEX API, Wallet API, and DEX Widget Integration.
 
-**Dates**: November 4th - November 17th, 2024
+**Dates**: November 4th - November 24th, 2024
 
 ## Base Templates
 | Name | Description | Repl | GitHub | Bounties |
