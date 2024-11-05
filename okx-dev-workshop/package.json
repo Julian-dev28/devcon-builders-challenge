@@ -7,9 +7,9 @@
     "install:widget": "cd dex-widget-demo && npm install",
     "install:swap": "cd evm-swap-app && npm install",
     "install:bot": "cd trading-bot && npm install",
-    "start:widget": "cd dex-widget-demo && npm start",
-    "start:swap": "cd evm-swap-app && npm start",
-    "start:bot": "cd trading-bot && npm start",
+    "start:widget": "cd dex-widget-demo && npm run dev",
+    "start:swap": "cd evm-swap-app && npm run start",
+    "start:bot": "cd trading-bot && npm run start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -21,9 +21,7 @@
   ],
   "author": "Julian",
   "license": "MIT",
-  "workspaces": [
-    "dex-widget-demo",
-    "evm-swap-app",
-    "trading-bot"
-  ]
+  "dependencies": {
+    "all": "^0.0.0"
+  }
 }
