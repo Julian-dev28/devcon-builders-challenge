@@ -14,6 +14,7 @@ A three-week virtual challenge for developers to build with OKX tools including 
 git clone https://github.com/Julian-dev28/devcon-builders-challenge.git
 
 # Change directory
+cd devcon-builders-challenge
 cd okx-dev-workshop
 
 # Install dependencies for all projects
