@@ -46,7 +46,7 @@ Rewards based on:
 
 ## In-Person Event (OKX Devcon Build-Off)
 **Date**: November 15th, 2024  
-**Location**: OKX OS Innovate Hub at Devcon
+**Location**: OKXOS's Innovate Hub in BKK
 
 ### Structure
 1. **Technical Overview (20 min)**  
@@ -61,19 +61,12 @@ Rewards based on:
   - Present solutions
   - Special reward for best solution
 
-## Timeline
-
-### Phase 1: Announcement (Oct 28 - Nov 1)
-- Community recruitment
-- Marketing campaign launch
-- Developer outreach
-
-### Phase 2: Virtual Challenge (Nov 4 - 17)
+### Virtual Challenge (Nov 4 - 24)
 - Live bounties
 - Remote office hours
 - Discord support
 
-### Phase 3: Devcon Event (Nov 15)
+### Devcon Event (Nov 15)
 - In-person build-off
 - Solution showcases
 - Prize awards
