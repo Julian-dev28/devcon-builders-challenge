@@ -54,15 +54,9 @@ Automated trading using OKX's APIs.
 - **Demo**: [Bot Demo on Replit](https://replit.com/@Juliandev28/OKX-OS-Trading-Bot)
 - **Setup**: See [bot setup guide](./trading-bot/README.md)
 
-## Workshop Challenge
-Build a multi-chain trading platform using one or more templates:
-1. Implement token swaps
-2. Add automated trading features
-3. Consider cross-chain interactions
-
 ## Documentation
-- [OKX DEX API Docs](https://www.okx.com/docs-v5/en/)
-- [Widget Integration Guide](https://www.okx.com/docs-v5/en/)
+- [OKX DEX API Docs](https://www.okx.com/web3/build/docs/waas/dex-api-quick-start) 
+- [Widget Integration Guide](https://www.okx.com/web3/build/docs/waas/dex-widget-quick-start)
 - [Trading API Reference](https://www.okx.com/docs-v5/en/)
 
 ## Support
