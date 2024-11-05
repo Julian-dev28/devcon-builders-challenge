@@ -8,6 +8,23 @@ A three-week virtual challenge for developers to build with OKX tools including 
 
 **Dates**: November 4th - November 24th, 2024
 
+## Quick Start
+```bash
+# Clone the repository
+git clone https://github.com/Julian-dev28/devcon-builders-challenge.git
+
+# Change directory
+cd okx-dev-workshop
+
+# Install dependencies for all projects
+npm run install-all
+
+# Start any demo
+npm run start:widget    # For DEX Widget demo
+npm run start:swap      # For EVM Swap demo
+npm run start:bot       # For Trading Bot demo
+```
+
 ## Base Templates
 | Name | Description | Repl | GitHub | Bounties |
 |------|-------------|------|--------|----------|
@@ -85,6 +102,6 @@ A three-week virtual challenge for developers to build with OKX tools including 
 - Include a clear description of your implementation
 - Add any relevant documentation or setup instructions
 
-Need help? Join our Discord community (link coming soon) where our team is ready to support your building journey.
+Need help? Join our [Discord community](https://discord.gg/PMJk9X6W) where our team is ready to support your building journey.
 
 Note: Make sure to work on the correct branch and target it in your PR. Each bounty has its own dedicated branch to keep submissions organized.

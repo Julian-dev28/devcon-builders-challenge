@@ -1,23 +1,6 @@
 # OKX Developer Workshop
 Build Multi-Chain DApps with OKX DEX & Wallet APIs
 
-## Quick Start
-```bash
-# Clone the repository
-git clone https://github.com/Julian-dev28/devcon-builders-challenge.git
-
-# Change directory
-cd okx-dev-workshop
-
-# Install dependencies for all projects
-npm run install-all
-
-# Start any demo
-npm run start:widget    # For DEX Widget demo
-npm run start:swap      # For EVM Swap demo
-npm run start:bot       # For Trading Bot demo
-```
-
 ## Repository Structure
 ```
 okx-dev-workshop/
@@ -60,7 +43,7 @@ Automated trading using OKX's APIs.
 - [Trading API Reference](https://www.okx.com/docs-v5/en/)
 
 ## Support
-- Discord: [Join our community](#)
+- Discord: [Join our community](https://discord.gg/PMJk9X6W)
 - Issues: Use the GitHub issues tab
 - Workshop Support: Ask mentors during the session
 
