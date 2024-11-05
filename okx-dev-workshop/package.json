@@ -1,0 +1,29 @@
+{
+  "name": "okx-dev-workshop",
+  "version": "1.0.0",
+  "description": "OKX Developer Workshop - Build Multi-Chain DApps",
+  "scripts": {
+    "install-all": "npm run install:widget && npm run install:swap && npm run install:bot",
+    "install:widget": "cd dex-widget-demo && npm install",
+    "install:swap": "cd evm-swap-app && npm install",
+    "install:bot": "cd trading-bot && npm install",
+    "start:widget": "cd dex-widget-demo && npm start",
+    "start:swap": "cd evm-swap-app && npm start",
+    "start:bot": "cd trading-bot && npm start",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "okx",
+    "blockchain",
+    "dex",
+    "trading",
+    "workshop"
+  ],
+  "author": "Julian",
+  "license": "MIT",
+  "workspaces": [
+    "dex-widget-demo",
+    "evm-swap-app",
+    "trading-bot"
+  ]
+}
