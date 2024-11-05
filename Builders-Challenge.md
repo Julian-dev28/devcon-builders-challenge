@@ -4,7 +4,7 @@
 A virtual challenge on the Zealy platform (TBD) paired with an in-person event at Devcon. The goal is to attract developers to build with OKX tools including DEX API, Wallet API, and DEX Widget Integration.
 
 ## Virtual Challenge (OKX Builders Quest)
-**Dates**: November 4th to November 17th, 2024
+**Dates**: November 4th to November 24th, 2024
 
 ### [Bounties](https://docs.google.com/spreadsheets/d/1V5inQswtaR9IZEFLR1kjYcjHSuo_HgUvVaZHkwkb89A/edit?gid=1293500999#gid=1293500999)
 Participants will explore and implement key OKX tools through both practical and theoretical exercises:
