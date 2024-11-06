@@ -3,6 +3,10 @@ const { bip39, BigNumber } = require("@okxweb3/crypto-lib");
 const { EthWallet } = require("@okxweb3/coin-ethereum");
 const fetch = require("node-fetch");
 const crypto = require("crypto");
+const { Web3 } = require("web3");
+const web3 = new Web3(
+  "https://endpoints.omniatech.io/v1/xlayer/mainnet/public",
+); // Add your XLayer RPC URL
 require("dotenv").config();
 
 // Validate required environment variables
@@ -308,6 +312,7 @@ async function handleWithdrawalRequest(ctx) {
   );
 }
 
+// Modify the existing handleWithdrawal function
 async function handleWithdrawal(ctx) {
   const userState = userStates[ctx.from.id] || {};
   console.log("Processing withdrawal...");
@@ -341,8 +346,11 @@ async function handleWithdrawal(ctx) {
 
     await sendReply(ctx, "Initiating withdrawal...");
 
-    const weiAmount = new BigNumber(userState.withdrawalAmount).times(1e18);
-    console.log(`Amount in wei: ${weiAmount.toString()}`);
+    // Get the user's address and private key
+    const userAddress = userState.address;
+    const privateKey = userState.privateKey.startsWith("0x")
+      ? userState.privateKey
+      : "0x" + userState.privateKey;
 
     // Get transaction info
     const signInfoResponse = await fetch(
@@ -354,16 +362,20 @@ async function handleWithdrawal(ctx) {
           "/api/v5/wallet/pre-transaction/sign-info",
           JSON.stringify({
             chainIndex: CHAIN_ID,
-            fromAddr: userState.address,
+            fromAddr: userAddress,
             toAddr: destination,
-            txAmount: weiAmount.toString(),
+            txAmount: new BigNumber(userState.withdrawalAmount)
+              .times(1e18)
+              .toString(),
           }),
         ),
         body: JSON.stringify({
           chainIndex: CHAIN_ID,
-          fromAddr: userState.address,
+          fromAddr: userAddress,
           toAddr: destination,
-          txAmount: weiAmount.toString(),
+          txAmount: new BigNumber(userState.withdrawalAmount)
+            .times(1e18)
+            .toString(),
         }),
       },
     );
@@ -376,85 +388,60 @@ async function handleWithdrawal(ctx) {
     }
 
     const txData = signInfoData.data[0];
-    const txParams = {
+    const nonce = await web3.eth.getTransactionCount(userAddress, "latest");
+    const ratio = BigInt(1); // Adjust if needed
+
+    const signTransactionParams = {
+      data: txData.data || "0x",
+      gasPrice: BigInt(txData.gasPrice.normal) * ratio,
       to: destination,
-      value: weiAmount,
-      nonce: parseInt(txData.nonce),
-      gasPrice: new BigNumber(txData.gasPrice.normal),
-      gasLimit: new BigNumber(txData.gasLimit),
-      chainId: parseInt(CHAIN_ID),
+      value: new BigNumber(userState.withdrawalAmount).times(1e18).toString(),
+      gas: BigInt(txData.gasLimit) * ratio,
+      nonce,
     };
 
-    console.log("Transaction params:", txParams);
+    console.log("Transaction params:", signTransactionParams);
 
-    const privateKey = userState.privateKey.startsWith("0x")
-      ? userState.privateKey
-      : "0x" + userState.privateKey;
-
-    const signedTx = await wallet.signTransaction({
+    // Sign the transaction
+    const { rawTransaction } = await web3.eth.accounts.signTransaction(
+      signTransactionParams,
       privateKey,
-      data: txParams,
-    });
-
-    console.log("Transaction signed successfully");
-
-    const broadcastResponse = await fetch(
-      getRequestUrl("/api/v5/wallet/pre-transaction/broadcast-transaction"),
-      {
-        method: "POST",
-        headers: getHeaders(
-          "POST",
-          "/api/v5/wallet/pre-transaction/broadcast-transaction",
-          JSON.stringify({
-            signedTx,
-            chainIndex: CHAIN_ID,
-            address: userState.address,
-          }),
-        ),
-        body: JSON.stringify({
-          signedTx,
-          chainIndex: CHAIN_ID,
-          address: userState.address,
-        }),
-      },
     );
 
-    const broadcastData = await broadcastResponse.json();
-    console.log("Broadcast response:", broadcastData);
+    // Broadcast the transaction
+    const chainTxInfo = await web3.eth.sendSignedTransaction(rawTransaction);
 
-    if (broadcastData.code === "0") {
-      // Store transaction info in user state
-      updateUserState(ctx.from, {
-        lastTxId: broadcastData.data[0].orderId,
-        withdrawalRequested: false,
-        withdrawalAmount: null,
-      });
+    console.log("Transaction sent successfully:", chainTxInfo);
 
-      const keyboard = new InlineKeyboard()
-        .text("Check Status", "check_status")
-        .row()
-        .text("Back to Menu", "start");
+    // Store transaction info
+    updateUserState(ctx.from, {
+      lastTxId: chainTxInfo.transactionHash,
+      withdrawalRequested: false,
+      withdrawalAmount: null,
+    });
 
-      await sendReply(
-        ctx,
-        `*Withdrawal Initiated Successfully*\n\n` +
-          `Amount: \`${userState.withdrawalAmount} OKB\`\n` +
-          `To Address: \`${destination}\`\n` +
-          `Order ID: \`${broadcastData.data[0].orderId}\`\n\n` +
-          `_Click Check Status to monitor your transaction_`,
-        {
-          parse_mode: "Markdown",
-          disable_web_page_preview: true,
-          reply_markup: keyboard,
-        },
-      );
-    } else {
-      throw new Error(broadcastData.msg || "Failed to broadcast transaction");
-    }
+    const keyboard = new InlineKeyboard()
+      .text("Check Status", "check_status")
+      .row()
+      .text("Back to Menu", "start");
+
+    await sendReply(
+      ctx,
+      `*Withdrawal Initiated Successfully*\n\n` +
+        `Amount: \`${userState.withdrawalAmount} OKB\`\n` +
+        `To Address: \`${destination}\`\n` +
+        `Transaction Hash: \`${chainTxInfo.transactionHash}\`\n\n` +
+        `_Click Check Status to monitor your transaction_`,
+      {
+        parse_mode: "Markdown",
+        disable_web_page_preview: true,
+        reply_markup: keyboard,
+      },
+    );
   } catch (error) {
     console.error("Withdrawal error:", error);
     await ctx.reply(
-      "An error occurred while initiating the withdrawal. Error: " +
+      "An error occurred while processing the withdrawal. Error: " +
         (error.message || "Unknown error"),
     );
   }
