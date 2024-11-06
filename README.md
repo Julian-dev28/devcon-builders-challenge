@@ -22,7 +22,7 @@ npm run install-all
 ```
 set your `.env` variables
 
-**evm-swap-app**
+**evm-swap-app/.env**
 ```
 REACT_APP_USER_ADDRESS=your_address_here
 REACT_APP_PRIVATE_KEY=your_private_key_here
@@ -31,7 +31,7 @@ REACT_APP_SECRET_KEY=your_secret_key_here
 REACT_APP_API_PASSPHRASE=your_api_passphrase_here
 ```
 
-**trading-bot**
+**trading-bot/.env**
 ```
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 OKX_PROJECT_ID=your_okx_project_id_here
