@@ -19,7 +19,29 @@ cd okx-dev-workshop
 
 # Install dependencies for all projects
 npm run install-all
+```
+set your `.env` variables
 
+**evm-swap-app**
+```
+REACT_APP_USER_ADDRESS=your_address_here
+REACT_APP_PRIVATE_KEY=your_private_key_here
+REACT_APP_API_KEY=your_api_key_here
+REACT_APP_SECRET_KEY=your_secret_key_here
+REACT_APP_API_PASSPHRASE=your_api_passphrase_here
+```
+
+**trading-bot**
+```
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+OKX_PROJECT_ID=your_okx_project_id_here
+OKX_API_KEY=your_okx_api_key_here
+OKX_API_SECRET_KEY=your_okx_secret_key_here
+OKX_API_PASSPHRASE=your_okx_passphrase_here
+ENCRYPTION_KEY=your_encryption_key_here
+```
+
+```
 # Start any demo
 npm run start:widget    # For DEX Widget demo
 npm run start:swap      # For EVM Swap demo
