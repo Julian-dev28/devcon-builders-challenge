@@ -4,10 +4,10 @@ import cryptoJS from "crypto-js";
 const lineaMainnet = "https://linea.blockpi.network/v1/rpc/public";
 const ethMainnet =
     "https://eth-mainnet.g.alchemy.com/v2/I177iatNveGoBt3geurbwflbKjKh8bzq";
-const foxyTokenAddress = "0x5FBDF89403270a1846F5ae7D113A989F850d1566";
 const ethUSDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-const baseTokenAddress = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 const personalAddress = "0xd37268a16374d0a52c801c06a11ef32a35fcd2b9"; // Change to your personal address
+const foxyTokenAddress = "0x5FBDF89403270a1846F5ae7D113A989F850d1566";
+const baseTokenAddress = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 const okxDexLinea = "0x57df6092665eb6058DE53939612413ff4B09114E";
 const lineaChainId = "59144";
 

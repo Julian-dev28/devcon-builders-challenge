@@ -2,7 +2,7 @@
 
 ## In-Person Event (OKX OS Workshop)
 **Date**: November 15th, 2024  
-**Location**: OKXOS's Innovate Hub in BKK
+**Location**: OKX OS's Innovate Hub in BKK
 
 ## Workshop Content
 1. **DEX Integration Basics**
