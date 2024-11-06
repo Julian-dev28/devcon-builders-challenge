@@ -312,17 +312,27 @@ async function handleWithdrawalRequest(ctx) {
   );
 }
 
-// Modify the existing handleWithdrawal function
 async function handleWithdrawal(ctx) {
   const userState = userStates[ctx.from.id] || {};
   console.log("Processing withdrawal...");
 
   try {
+    // Step 1: Handle amount input
     if (!userState.withdrawalAmount) {
       const amount = parseFloat(ctx.message.text);
       if (isNaN(amount) || amount <= 0) {
-        await ctx.reply(
-          "Invalid withdrawal amount. Please enter a positive number.",
+        const keyboard = new InlineKeyboard()
+          .text("↗️ Try Again", "withdraw_OKB")
+          .row()
+          .text("🔙 Back to Menu", "back_to_menu");
+
+        await sendReply(
+          ctx,
+          "❌ Invalid amount. Please enter a positive number.",
+          {
+            parse_mode: "Markdown",
+            reply_markup: keyboard,
+          },
         );
         return;
       }
@@ -330,29 +340,77 @@ async function handleWithdrawal(ctx) {
       updateUserState(ctx.from, { withdrawalAmount: amount });
       await sendReply(
         ctx,
-        "Please respond with the XLayer address where you would like to receive the OKB.",
-        { reply_markup: { force_reply: true } },
+        "*Enter Withdrawal Address*\n\n" +
+          "Please provide the XLayer address where you want to receive your OKB.\n\n" +
+          "_Reply to this message with the address_",
+        {
+          parse_mode: "Markdown",
+          reply_markup: { force_reply: true },
+        },
       );
       return;
     }
 
+    // Step 2: Handle address input
     const destination = ctx.message.text.toLowerCase();
     if (!destination.startsWith("0x") || destination.length !== 42) {
-      await ctx.reply(
-        "Invalid destination address format. Please provide a valid Ethereum address.",
+      const keyboard = new InlineKeyboard()
+        .text("↗️ Try Again", "withdraw_OKB")
+        .row()
+        .text("🔙 Back to Menu", "back_to_menu");
+
+      await sendReply(
+        ctx,
+        "❌ Invalid address format. Please provide a valid XLayer address.",
+        {
+          parse_mode: "Markdown",
+          reply_markup: keyboard,
+        },
       );
       return;
     }
 
-    await sendReply(ctx, "Initiating withdrawal...");
+    await sendReply(ctx, "🔄 Preparing withdrawal...");
 
-    // Get the user's address and private key
+    // Step 3: Get user's wallet info
     const userAddress = userState.address;
     const privateKey = userState.privateKey.startsWith("0x")
       ? userState.privateKey
       : "0x" + userState.privateKey;
 
-    // Get transaction info
+    // Step 4: Check balance before proceeding
+    try {
+      const balance = await web3.eth.getBalance(userAddress);
+      const withdrawalAmount = new BigNumber(userState.withdrawalAmount).times(
+        1e18,
+      );
+
+      if (new BigNumber(balance).lt(withdrawalAmount)) {
+        const keyboard = new InlineKeyboard()
+          .text("💰 Check Balance", "check_balance")
+          .row()
+          .text("↗️ Try Different Amount", "withdraw_OKB")
+          .row()
+          .text("🔙 Back to Menu", "back_to_menu");
+
+        await sendReply(
+          ctx,
+          "❌ *Insufficient Balance*\n\n" +
+            "Your balance is too low for this withdrawal.\n" +
+            "Please check your balance and try again with a smaller amount.",
+          {
+            parse_mode: "Markdown",
+            reply_markup: keyboard,
+          },
+        );
+        return;
+      }
+    } catch (error) {
+      console.error("Balance check error:", error);
+      // Continue with withdrawal attempt even if balance check fails
+    }
+
+    // Step 5: Get transaction info
     const signInfoResponse = await fetch(
       getRequestUrl("/api/v5/wallet/pre-transaction/sign-info"),
       {
@@ -381,68 +439,140 @@ async function handleWithdrawal(ctx) {
     );
 
     const signInfoData = await signInfoResponse.json();
-    console.log("Sign info response:", signInfoData);
+    console.log("Sign info:", signInfoData);
 
     if (signInfoData.code !== "0") {
       throw new Error(signInfoData.msg || "Failed to get transaction info");
     }
 
+    // Step 6: Prepare and validate transaction parameters
     const txData = signInfoData.data[0];
     const nonce = await web3.eth.getTransactionCount(userAddress, "latest");
-    const ratio = BigInt(1); // Adjust if needed
+
+    // Get current gas price and add 10% buffer
+    const currentGasPrice = await web3.eth.getGasPrice();
+    const gasPriceWithBuffer =
+      (BigInt(currentGasPrice) * BigInt(110)) / BigInt(100);
 
     const signTransactionParams = {
       data: txData.data || "0x",
-      gasPrice: BigInt(txData.gasPrice.normal) * ratio,
+      gasPrice: gasPriceWithBuffer,
       to: destination,
       value: new BigNumber(userState.withdrawalAmount).times(1e18).toString(),
-      gas: BigInt(txData.gasLimit) * ratio,
+      gas: BigInt(txData.gasLimit),
       nonce,
     };
 
-    console.log("Transaction params:", signTransactionParams);
+    // Step 7: Estimate total cost with gas
+    const estimatedGasCost =
+      BigInt(signTransactionParams.gas) * gasPriceWithBuffer;
+    const totalCost = BigInt(signTransactionParams.value) + estimatedGasCost;
 
-    // Sign the transaction
-    const { rawTransaction } = await web3.eth.accounts.signTransaction(
-      signTransactionParams,
-      privateKey,
-    );
+    // Check if user has enough for transaction + gas
+    const userBalance = BigInt(await web3.eth.getBalance(userAddress));
+    if (userBalance < totalCost) {
+      const keyboard = new InlineKeyboard()
+        .text("💰 Check Balance", "check_balance")
+        .row()
+        .text("↗️ Try Different Amount", "withdraw_OKB")
+        .row()
+        .text("🔙 Back to Menu", "back_to_menu");
 
-    // Broadcast the transaction
-    const chainTxInfo = await web3.eth.sendSignedTransaction(rawTransaction);
+      const gasInEth = web3.utils.fromWei(estimatedGasCost.toString(), "ether");
+      await sendReply(
+        ctx,
+        "❌ *Insufficient Funds for Gas*\n\n" +
+          `Withdrawal Amount: ${userState.withdrawalAmount} OKB\n` +
+          `Estimated Gas Cost: ${gasInEth} OKB\n\n` +
+          "Please try a smaller amount to account for gas fees.",
+        {
+          parse_mode: "Markdown",
+          reply_markup: keyboard,
+        },
+      );
+      return;
+    }
 
-    console.log("Transaction sent successfully:", chainTxInfo);
+    // Step 8: Sign and send transaction
+    try {
+      const { rawTransaction } = await web3.eth.accounts.signTransaction(
+        signTransactionParams,
+        privateKey,
+      );
 
-    // Store transaction info
-    updateUserState(ctx.from, {
-      lastTxId: chainTxInfo.transactionHash,
-      withdrawalRequested: false,
-      withdrawalAmount: null,
-    });
+      const chainTxInfo = await web3.eth.sendSignedTransaction(rawTransaction);
+      console.log("Transaction sent:", chainTxInfo);
+
+      // Update state with successful transaction
+      updateUserState(ctx.from, {
+        lastTxId: chainTxInfo.transactionHash,
+        withdrawalRequested: false,
+        withdrawalAmount: null,
+      });
+
+      const keyboard = new InlineKeyboard()
+        .text("🔍 Check Status", "check_status")
+        .row()
+        .text("💰 Check Balance", "check_balance")
+        .row()
+        .text("🔙 Back to Menu", "back_to_menu");
+
+      await sendReply(
+        ctx,
+        `✅ *Withdrawal Initiated Successfully*\n\n` +
+          `Amount: \`${userState.withdrawalAmount} OKB\`\n` +
+          `To: \`${destination}\`\n` +
+          `Transaction: \`${chainTxInfo.transactionHash}\`\n\n` +
+          `_Use the buttons below to track your transaction_`,
+        {
+          parse_mode: "Markdown",
+          disable_web_page_preview: true,
+          reply_markup: keyboard,
+        },
+      );
+    } catch (txError) {
+      console.error("Transaction error:", txError);
+
+      const keyboard = new InlineKeyboard()
+        .text("↗️ Try Again", "withdraw_OKB")
+        .row()
+        .text("💰 Check Balance", "check_balance")
+        .row()
+        .text("🔙 Back to Menu", "back_to_menu");
+
+      await sendReply(
+        ctx,
+        "❌ *Transaction Failed*\n\n" +
+          "The withdrawal could not be completed. This might be due to:\n" +
+          "• Insufficient funds for gas\n" +
+          "• Network congestion\n" +
+          "• Contract execution error\n\n" +
+          `Error: ${txError.message || "Unknown error"}\n\n` +
+          "_Please try again or use a different amount_",
+        {
+          parse_mode: "Markdown",
+          reply_markup: keyboard,
+        },
+      );
+    }
+  } catch (error) {
+    console.error("Withdrawal error:", error);
 
     const keyboard = new InlineKeyboard()
-      .text("Check Status", "check_status")
+      .text("↗️ Try Again", "withdraw_OKB")
       .row()
-      .text("Back to Menu", "start");
+      .text("🔙 Back to Menu", "back_to_menu");
 
     await sendReply(
       ctx,
-      `*Withdrawal Initiated Successfully*\n\n` +
-        `Amount: \`${userState.withdrawalAmount} OKB\`\n` +
-        `To Address: \`${destination}\`\n` +
-        `Transaction Hash: \`${chainTxInfo.transactionHash}\`\n\n` +
-        `_Click Check Status to monitor your transaction_`,
+      "❌ *Withdrawal Error*\n\n" +
+        "An error occurred during the withdrawal:\n" +
+        `\`${error.message || "Unknown error"}\`\n\n` +
+        "_Please try again or contact support if the issue persists_",
       {
         parse_mode: "Markdown",
-        disable_web_page_preview: true,
         reply_markup: keyboard,
       },
-    );
-  } catch (error) {
-    console.error("Withdrawal error:", error);
-    await ctx.reply(
-      "An error occurred while processing the withdrawal. Error: " +
-        (error.message || "Unknown error"),
     );
   }
 }
@@ -468,32 +598,65 @@ async function handleExportKey(ctx) {
 }
 
 // Add these new helper functions and handlers
-
-// Correct status mapping according to the docs
 function getTxStatusText(status) {
-  const statusMap = {
-    1: "Pending", // Changed from 0 to 1
-    2: "Success", // Changed from 1 to 2
-    3: "Failed", // Changed from 2 to 3
-  };
-  return statusMap[status] || "Unknown";
+  const statusNum = parseInt(status);
+  switch (statusNum) {
+    case 1:
+      return "⏳ Pending";
+    case 2:
+      return "✅ Success";
+    case 3:
+      return "❌ Failed";
+    default:
+      return "❓ Unknown";
+  }
 }
 
-async function getTransactionStatus(accountId, orderId) {
+// Optional: If you need just the status without emojis
+function getTxStatusPlainText(status) {
+  const statusNum = parseInt(status);
+  switch (statusNum) {
+    case 1:
+      return "Pending";
+    case 2:
+      return "Success";
+    case 3:
+      return "Failed";
+    default:
+      return "Unknown";
+  }
+}
+
+// Optional: If you need just the emoji
+function getTxStatusEmoji(status) {
+  const statusNum = parseInt(status);
+  switch (statusNum) {
+    case 1:
+      return "⏳";
+    case 2:
+      return "✅";
+    case 3:
+      return "❌";
+    default:
+      return "❓";
+  }
+}
+
+function formatTimestamp(timestamp) {
+  if (!timestamp) return "Pending";
+  return new Date(parseInt(timestamp)).toLocaleString();
+}
+
+async function getTransactionStatus(txHash) {
   try {
-    // Construct params according to docs
+    const path = `/api/v5/wallet/post-transaction/transaction-detail-by-txhash`;
     const params = {
-      accountId, // Either address or accountId is required
+      txHash,
       chainIndex: CHAIN_ID,
-      orderId,
-      limit: "20", // Optional, default 20, max 100
     };
 
     const queryParams = new URLSearchParams(params).toString();
-    const path = `/api/v5/wallet/post-transaction/orders`;
     const url = getRequestUrl(path);
-
-    console.log("Checking status with params:", params);
 
     const response = await fetch(`${url}?${queryParams}`, {
       method: "GET",
@@ -501,107 +664,88 @@ async function getTransactionStatus(accountId, orderId) {
     });
 
     const data = await response.json();
-    console.log("Status API Response:", JSON.stringify(data, null, 2));
+    console.log("Transaction details:", JSON.stringify(data, null, 2));
 
-    if (data.code === "0" && (!data.data || data.data.length === 0)) {
-      return {
-        status: "Pending", // Changed from "Transaction Not Found" to "Pending"
-        orderId: orderId,
-        txHash: "Awaiting confirmation",
-        message: "Transaction is being processed",
-      };
+    if (data.code !== "0" || !data.data?.[0]) {
+      throw new Error(data.msg || "Failed to get transaction details");
     }
 
-    if (data.code !== "0") {
-      throw new Error(data.msg || "Failed to get transaction status");
-    }
-
-    const txInfo = data.data[0];
+    const tx = data.data[0];
     return {
-      chainIndex: txInfo.chainIndex,
-      orderId: txInfo.orderId,
-      status: getTxStatusText(txInfo.txStatus),
-      txHash: txInfo.txhash || "Processing",
-      blockHash: txInfo.blockHash || "Pending",
-      blockHeight: txInfo.blockHeight || "Pending",
-      blockTime: txInfo.blockTime
-        ? new Date(parseInt(txInfo.blockTime)).toLocaleString()
+      status: getTxStatusText(tx.txStatus),
+      hash: tx.txhash,
+      time: formatTimestamp(tx.txTime),
+      blockHeight: tx.height || "Pending",
+      from: tx.fromDetails?.[0]?.address || "Unknown",
+      to: tx.toDetails?.[0]?.address || "Unknown",
+      amount: tx.amount || "0",
+      symbol: tx.symbol || "OKB",
+      gasUsed: tx.gasUsed || "Pending",
+      gasPrice: tx.gasPrice
+        ? web3.utils.fromWei(tx.gasPrice, "gwei") + " Gwei"
         : "Pending",
-      feeUsdValue: txInfo.feeUsdValue
-        ? `$${parseFloat(txInfo.feeUsdValue).toFixed(4)}`
-        : "Calculating",
-      gasUsed: txInfo.gasUsed || "Pending",
-      txDetail: txInfo.txDetail || [],
+      methodId: tx.methodId || "N/A",
+      internalTxs: tx.internalTransactionDetails || [],
     };
   } catch (error) {
-    console.error("Error getting transaction status:", error);
+    console.error("Error getting transaction details:", error);
     throw error;
   }
 }
+
 async function handleCheckStatus(ctx) {
   try {
     const userState = userStates[ctx.from.id];
-    if (!userState?.lastTxId || !userState?.walletAccount) {
-      await sendReply(
-        ctx,
-        "No recent transaction found. Please make a transaction first.",
-      );
+    if (!userState?.lastTxId) {
+      await sendReply(ctx, "❌ No recent transaction found.", {
+        reply_markup: new InlineKeyboard().text(
+          "🔙 Back to Menu",
+          "back_to_menu",
+        ),
+      });
       return;
     }
 
-    await sendReply(ctx, "Checking transaction status...");
+    await sendReply(ctx, "🔍 Checking transaction status...");
 
-    const txStatus = await getTransactionStatus(
-      userState.walletAccount,
-      userState.lastTxId,
-    );
+    const txStatus = await getTransactionStatus(userState.lastTxId);
 
     const keyboard = new InlineKeyboard()
       .text("🔄 Refresh Status", "check_status")
-      .row();
+      .row()
+      .text("🔙 Back to Menu", "back_to_menu");
 
-    if (txStatus.status === "Pending") {
-      await sendReply(
-        ctx,
-        `*Transaction Status*\n\n` +
-          `Order ID: \`${txStatus.orderId}\`\n` +
-          `Status: \`${txStatus.status}\`\n` +
-          `Hash: \`${txStatus.txHash}\`\n\n` +
-          `_${txStatus.message}. Click refresh to check again._`,
-        {
-          parse_mode: "Markdown",
-          reply_markup: keyboard,
-        },
-      );
-      return;
-    }
-
-    await sendReply(
-      ctx,
+    const statusMsg =
       `*Transaction Status*\n\n` +
-        `Chain ID: \`${txStatus.chainIndex}\`\n` +
-        `Order ID: \`${txStatus.orderId}\`\n` +
-        `Status: \`${txStatus.status}\`\n` +
-        `Hash: \`${txStatus.txHash}\`\n` +
-        `Block Hash: \`${txStatus.blockHash}\`\n` +
-        `Block Height: \`${txStatus.blockHeight}\`\n` +
-        `Time: \`${txStatus.blockTime}\`\n` +
-        `Gas Used: \`${txStatus.gasUsed}\`\n` +
-        `Fee: \`${txStatus.feeUsdValue}\`\n\n` +
-        `_Click refresh to check for updates_`,
-      {
-        parse_mode: "Markdown",
-        reply_markup: keyboard,
-      },
-    );
+      `Status: ${txStatus.status}\n` +
+      `Time: \`${txStatus.time}\`\n` +
+      `Hash: \`${txStatus.hash}\`\n` +
+      `Block: \`${txStatus.blockHeight}\`\n\n` +
+      `From: \`${txStatus.from}\`\n` +
+      `To: \`${txStatus.to}\`\n` +
+      `Amount: ${txStatus.amount} ${txStatus.symbol}\n\n` +
+      `Gas Used: \`${txStatus.gasUsed}\`\n` +
+      `Gas Price: \`${txStatus.gasPrice}\``;
+
+    await sendReply(ctx, statusMsg, {
+      parse_mode: "Markdown",
+      reply_markup: keyboard,
+    });
   } catch (error) {
-    console.error("Check status error:", error);
+    console.error("Status check error:", error);
     await sendReply(
       ctx,
-      "Failed to get transaction status. Please try again later.",
+      "❌ Failed to get transaction status. Please try again.",
+      {
+        reply_markup: new InlineKeyboard()
+          .text("🔄 Try Again", "check_status")
+          .row()
+          .text("🔙 Back to Menu", "back_to_menu"),
+      },
     );
   }
 }
+
 // Pin message handler
 async function handlePinMessage(ctx) {
   console.log("Attempting to pin message...");
@@ -620,6 +764,7 @@ async function handlePinMessage(ctx) {
 }
 
 // Register callback handlers
+// Register callback handlers with direct keyboard creation
 const callbackHandlers = {
   check_balance: handleCheckBalance,
   deposit_OKB: handleDeposit,
@@ -628,23 +773,92 @@ const callbackHandlers = {
   create_wallet_account: handleCreateWalletAccount,
   pin_message: handlePinMessage,
   check_status: handleCheckStatus,
+  back_to_menu: async (ctx) => {
+    const { from: user } = ctx;
+    const walletAccount = userStates[user.id]?.walletAccount;
+    const userAddress = userStates[user.id]?.address;
+
+    // If no wallet exists, start fresh
+    if (!walletAccount || !userAddress) {
+      return ctx.command("start");
+    }
+
+    // Create main menu keyboard directly
+    const keyboard = new InlineKeyboard()
+      .text("💰 Check Balance", "check_balance")
+      .row()
+      .text("🔑 Export Key", "export_key")
+      .row()
+      .text("📝 Create New Wallet", "create_wallet_account")
+      .row()
+      .text("🔍 Check Transaction Status", "check_status")
+      .row()
+      .text("📌 Pin Message", "pin_message")
+      .row()
+      .text("↗️ Withdraw", "withdraw_OKB")
+      .row()
+      .text("↙️ Deposit", "deposit_OKB");
+
+    // Show main menu with wallet info
+    await sendReply(
+      ctx,
+      `*XLayer Trading Bot Menu* 🌟\n\n` +
+        `Wallet Account ID: \`${walletAccount}\`\n` +
+        `Wallet Address: \`${userAddress}\`\n\n` +
+        `Select an option below:`,
+      {
+        parse_mode: "Markdown",
+        reply_markup: keyboard,
+      },
+    );
+  },
 };
 
-// Handle callback queries
+// Update callback query handler with better error handling
 bot.on("callback_query:data", async (ctx) => {
-  const handler = callbackHandlers[ctx.callbackQuery.data];
-  if (handler) {
-    console.log(`Executing callback handler: ${ctx.callbackQuery.data}`);
-    await ctx.answerCallbackQuery();
-    await handler(ctx);
-  } else {
-    console.log(`Unknown callback received: ${ctx.callbackQuery.data}`);
-    await ctx.reply("Unknown button clicked!");
-  }
+  try {
+    const handler = callbackHandlers[ctx.callbackQuery.data];
+    if (handler) {
+      console.log(`Executing callback handler: ${ctx.callbackQuery.data}`);
+      await ctx.answerCallbackQuery();
+      await handler(ctx);
+    } else {
+      console.log(`Unknown callback received: ${ctx.callbackQuery.data}`);
+      await ctx.answerCallbackQuery("⚠️ Invalid option");
 
-  console.log(
-    `User interaction - ID: ${ctx.from.id}, Username: ${ctx.from.username}, First Name: ${ctx.from.first_name}`,
-  );
+      // Create error menu keyboard directly
+      const keyboard = new InlineKeyboard()
+        .text("💰 Check Balance", "check_balance")
+        .row()
+        .text("🔙 Back to Menu", "back_to_menu");
+
+      await sendReply(
+        ctx,
+        "❌ Invalid menu option. Please select from the options below:",
+        {
+          reply_markup: keyboard,
+        },
+      );
+    }
+
+    // Log user interaction
+    console.log(
+      `User interaction - ID: ${ctx.from.id}, Username: ${ctx.from.username}, First Name: ${ctx.from.first_name}`,
+    );
+  } catch (error) {
+    console.error("Callback handling error:", error);
+    await ctx.answerCallbackQuery("❌ Error occurred");
+
+    // Create simple keyboard for error state
+    const keyboard = new InlineKeyboard().text(
+      "🔙 Back to Menu",
+      "back_to_menu",
+    );
+
+    await sendReply(ctx, "An error occurred. Please try again.", {
+      reply_markup: keyboard,
+    });
+  }
 });
 
 // Handle text messages for withdrawal flow
