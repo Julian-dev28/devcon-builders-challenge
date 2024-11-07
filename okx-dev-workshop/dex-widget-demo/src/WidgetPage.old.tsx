@@ -10,11 +10,6 @@ import {
   THEME,
 } from "@okxweb3/dex-widget";
 
-const native_token = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
-const usdc_address = "0x74b7f16337b8972027f6196a17a631ac6de26d22";
-const demo_address = "0xa134df70a0f6581c0beb7176108d3649e8d37fe6";
-const dmc_coin = "0x848e56ad13b728a668af89459851efd8a89c9f58";
-
 declare global {
   interface Window {
     ethereum?: any;
@@ -33,6 +28,32 @@ const WidgetPage: React.FC = () => {
       width: 450,
       height: 400,
       providerType: ProviderType.EVM,
+      tradeType: TradeType.AUTO,
+      chainIds: ["196", "8453"],
+      theme: THEME.LIGHT,
+      lang: "en_us",
+      tokenPair: {
+        fromChain: 196, //X Layer
+        toChain: 196, // X Layer
+        fromToken: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", // OKB
+        toToken: "0x74b7f16337b8972027f6196a17a631ac6de26d22", // USDC
+      },
+      bridgeTokenPair: {
+        fromChain: 8453, // BASE
+        toChain: 196, // X Layer
+        fromToken: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", // ETH
+        toToken: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", // OKB
+      },
+      feeConfig: {
+        196: {
+          feePercent: 1,
+          referrerAddress: "0xd37268a16374d0a52c801c06a11ef32a35fcd2b9",
+        },
+        8453: {
+          feePercent: 1,
+          referrerAddress: "0xd37268a16374d0a52c801c06a11ef32a35fcd2b9",
+        },
+      },
     };
     const provider = window.ethereum;
 

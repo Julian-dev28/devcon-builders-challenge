@@ -1,8 +1,8 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Navigation from './Navigation';
-import LandingPage from './LandingPage';
-import WidgetPage from './WidgetPage';
+import React from "react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import Navigation from "./Navigation";
+import LandingPage from "./LandingPage";
+import WidgetPage from "./WidgetPage";
 
 const App: React.FC = () => {
   return (
