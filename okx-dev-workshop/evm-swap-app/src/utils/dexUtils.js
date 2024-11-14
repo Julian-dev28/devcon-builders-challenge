@@ -15,20 +15,21 @@ const xlayerMainnet = "https://endpoints.omniatech.io/v1/xlayer/mainnet/public";
 const okxDexAddress = "0x8b773D83bc66Be128c60e07E17C8901f7a64F000";
 const xlayerChainId = "196";
 const xlayerUSDC = "0x74b7f16337b8972027f6196a17a631ac6de26d22";
+const wethAddress = "0x5a77f1443d16ee5761d310e38b62f77f726bc71c"
 const apiBaseUrl = "https://www.okx.com/api/v5/dex/aggregator";
 
 // Environment variables
 // XLayer: 196 | XLayer Testnet: 195 | ETH Mainnet: 1 | ETH Sepolia: 11155111
 
-const web3 = new Web3(lineaMainnet);
-export const chainId = lineaChainId;
-export const toTokenAddress = baseTokenAddress;
-export const fromTokenAddress = foxyTokenAddress;
+const web3 = new Web3(xlayerMainnet);
+export const chainId = xlayerChainId;
+export const toTokenAddress = wethAddress;
+export const fromTokenAddress = baseTokenAddress;
 export const ratio = BigInt(3) / BigInt(2);
 export const user = process.env.REACT_APP_USER_ADDRESS;
 export const fromAmount = "10";
 export const privateKey = process.env.REACT_APP_PRIVATE_KEY;
-export const spenderAddress = okxDexLinea;
+export const spenderAddress = okxDexAddress;
 
 const apiKey = process.env.REACT_APP_API_KEY;
 const secretKey = process.env.REACT_APP_SECRET_KEY;
